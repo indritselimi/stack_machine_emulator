@@ -1,7 +1,10 @@
 class StackMachine
 
+  UnrecognizedOperation = Class.new(ArgumentError)
+  ProcessingError = Class.new(RuntimeError)
+
   def initialize
-    @stack = []
+    @stack = new_internal_stack
   end
 
   def process(word)
@@ -10,20 +13,15 @@ class StackMachine
     end
   end
 
-  UnrecognizedOperation = Class.new(ArgumentError)
-  ProcessingError = Class.new(RuntimeError)
-
   private
 
-  def run(word)
-    word.chars.each do |char|
-      if digit?(char)
-        @stack.push(char.to_i)
-      else
-        @stack.push(operator(char).apply(@stack))
-      end
+  def new_internal_stack
+    stack = []
+    (class << stack;self end).define_method :pop! do
+      fail ProcessingError if empty?
+      self.pop
     end
-    @stack.pop
+    stack
   end
 
   def halt_on_error
@@ -34,15 +32,24 @@ class StackMachine
     end
   end
 
+  def run(word)
+    word.chars.each do |char|
+      if digit?(char)
+        @stack.push(char.to_i)
+      else
+        @stack.push(operator(char).apply(@stack))
+      end
+    end
+    @stack.pop!
+  end
+
   def digit?(char)
     char =~ /\d/
   end
 
   class << (ADDITION = Object.new)
     def apply(stack)
-      fail ProcessingError.new if stack.size < 2
-
-      stack.pop + stack.pop
+      stack.pop! + stack.pop!
     end
 
     def symbol
@@ -52,9 +59,7 @@ class StackMachine
 
   class << (MULTIPLICATION = Object.new)
     def apply(stack)
-      fail ProcessingError.new if stack.size < 2
-
-      stack.pop * stack.pop
+      stack.pop! * stack.pop!
     end
 
     def symbol
@@ -63,8 +68,7 @@ class StackMachine
   end
 
   def operator(symbol)
-    op = [ADDITION, MULTIPLICATION].detect { |op| op.symbol == symbol }
-    fail UnrecognizedOperation.new(symbol) if op.nil?
-    op
+    fail_if_none = lambda { fail UnrecognizedOperation.new(symbol) }
+    [ADDITION, MULTIPLICATION].detect(fail_if_none) { |op| op.symbol == symbol }
   end
 end

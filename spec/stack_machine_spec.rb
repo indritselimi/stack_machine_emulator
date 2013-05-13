@@ -25,6 +25,10 @@ describe StackMachine do
       machine.process("11++").should == -1
     end
 
+    it "halts if no element is present" do
+      machine.process("").should == -1
+    end
+
     it "raises an error on unrecognized operation" do
       expect { machine.process("|") }.to raise_error(StackMachine::UnrecognizedOperation)
     end
