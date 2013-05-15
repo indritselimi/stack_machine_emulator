@@ -47,21 +47,26 @@ class StackMachine
     char =~ /\d/
   end
 
-  class << (ADDITION = Object.new)
+
+  class BinaryOperator
+    FUNCTION = ->(op, lh, rh) { lh.send(op, rh) }
+
     def apply(stack)
-      stack.pop! + stack.pop!
+      FUNCTION[symbol, stack.pop!, stack.pop!]
     end
 
+    def symbol
+      fail "define me"
+    end
+  end
+
+  class << (ADDITION = BinaryOperator.new)
     def symbol
       "+"
     end
   end
 
-  class << (MULTIPLICATION = Object.new)
-    def apply(stack)
-      stack.pop! * stack.pop!
-    end
-
+  class << (MULTIPLICATION = BinaryOperator.new)
     def symbol
       "*"
     end
